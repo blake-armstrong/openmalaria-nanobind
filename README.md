@@ -1,9 +1,10 @@
 # openmalaria-nanobind
 
-Minimal Python bindings for [OpenMalaria](https://github.com/SwissTPH/openmalaria),
-built with [nanobind](https://github.com/wjakob/nanobind). Runs a scenario in a
-fresh subprocess per call and returns pandas DataFrames directly. **Bypasses the
-need to read an XML from the disk, and writing results to the disk.**
+Minimal Python bindings for
+[OpenMalaria](https://github.com/OpenMalaria-Org/openmalaria), built with
+[nanobind](https://github.com/wjakob/nanobind). Runs a scenario in a fresh
+subprocess per call and returns pandas DataFrames directly. **Bypasses the need
+to read an XML from the disk, and writing results to the disk.**
 
 NOTE: This is **NOT** a *workflow*. This repo provides a small and concise way
 to connect the OpenMalaria C++ code to Python as a library call. This repo does
@@ -71,8 +72,8 @@ NB: schema lookup resolves relative to the current working directory for both
 ensure the schema is discoverable from the working directory. Alternatively,
 pass `schema_dir=<dir containing scenario_current.xsd>`: the worker subprocess
 then runs from that directory instead (relative `path=`/`resource_path=` are
-still resolved against the caller's working directory), so the caller never
-has to `chdir`.
+still resolved against the caller's working directory), so the caller never has
+to `chdir`.
 
 `om.run()` also accepts `validate_only=True` (parse/validate the scenario and
 stop before any timestep evolution. This acts as a cheap sanity check,
@@ -141,9 +142,10 @@ It costs a process-spawn + reimport per `run()` call
 uv run pytest
 ```
 
-`tests/test_rerun_consistency.py` and `test_repeated_calls_in_same_process_succeed`
-guard the one-subprocess-per-run() isolation above: every box-test scenario is
-run twice in the same process and must match `core/test/expected` both times.
+`tests/test_rerun_consistency.py` and
+`test_repeated_calls_in_same_process_succeed` guard the one-subprocess-per-run()
+isolation above: every box-test scenario is run twice in the same process and
+must match `core/test/expected` both times.
 
 ## Linting and type checking
 
@@ -153,8 +155,8 @@ uv run ruff check
 uv run basedpyright
 ```
 
-`src/openmalaria/_openmalaria.pyi` is generated from the compiled
-module; regenerate it after changing `bindings/src/bindings.cpp`:
+`src/openmalaria/_openmalaria.pyi` is generated from the compiled module;
+regenerate it after changing `bindings/src/bindings.cpp`:
 
 ```sh
 uv run --with nanobind python -m nanobind.stubgen -q -P \
