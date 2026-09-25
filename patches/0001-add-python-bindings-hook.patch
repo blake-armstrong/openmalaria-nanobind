@@ -9,7 +9,7 @@ index 33f7c90a..4aa885de 100644
 +# -----  Python bindings (nanobind)  -----
 +#
 +# Not part of upstream/this fork: this hook is applied locally (see
-+# ../patches/0001-add-python-bindings-hook.patch) by the openmalaria-python
++# ../patches/0001-add-python-bindings-hook.patch) by the openmalaria-nanobind
 +# repo's own build step, so this submodule's checked-in CMakeLists.txt stays
 +# byte-for-byte identical to the openmalaria-fork core-only branch.
 +

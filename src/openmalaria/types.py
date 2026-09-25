@@ -10,14 +10,3 @@ class OMRunResult(TypedDict):
 
     survey: pd.DataFrame
     continuous: pd.DataFrame | None
-
-
-class ScenarioResult(OMRunResult):
-    """An OMRunResult tagged with the scenario it came from.
-
-    Convenience for callers batching multiple run()s (e.g. one per work item
-    in a parameter sweep) who want the name carried alongside the result
-    rather than tracked separately.
-    """
-
-    name: str

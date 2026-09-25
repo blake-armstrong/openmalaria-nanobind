@@ -97,6 +97,43 @@ def test_xml_matches_path(scenario1_path, resource_path, monkeypatch):
     assert list(r["survey"].columns) == ["survey", "column", "measure", "value"]
 
 
+def test_schema_dir_replaces_chdir(
+    scenario1_path, resource_path, tmp_path, monkeypatch
+):
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
+    with pytest.raises(om.OpenMalariaError):
+        om.run(
+            path=str(scenario1_path), resource_path=resource_path, validate_only=True
+        )
+
+    r = om.run(
+        path=str(scenario1_path),
+        resource_path=resource_path,
+        schema_dir=str(scenario1_path.parent),
+        validate_only=True,
+    )
+    assert r["survey"].shape == (0, 4)
+    assert os.getcwd() == str(elsewhere)
+
+
+def test_schema_dir_resolves_relative_path_against_caller_cwd(
+    scenario1_path, resource_path, monkeypatch
+):
+    monkeypatch.chdir(scenario1_path.parent.parent)
+    relative = os.path.join(scenario1_path.parent.name, scenario1_path.name)
+
+    r = om.run(
+        path=relative,
+        resource_path=resource_path,
+        schema_dir=str(scenario1_path.parent),
+        validate_only=True,
+    )
+    assert r["survey"].shape == (0, 4)
+
+
 def test_repeated_calls_in_same_process_succeed(
     scenario1_path, resource_path, monkeypatch
 ):
@@ -113,7 +150,9 @@ def test_tmp_dir_is_used_and_cleaned_up_by_default(
     custom_tmp.mkdir()
     monkeypatch.chdir(scenario1_path.parent)
 
-    om.run(path=str(scenario1_path), resource_path=resource_path, tmp_dir=str(custom_tmp))
+    om.run(
+        path=str(scenario1_path), resource_path=resource_path, tmp_dir=str(custom_tmp)
+    )
 
     assert list(custom_tmp.iterdir()) == []
 

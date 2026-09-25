@@ -10,7 +10,14 @@ from conftest import CORE_TEST_DIR, EXPECTED_DIR, SCHEMA_FILE
 import openmalaria as om
 
 OM_BOXTEST_NAMES = [
-    "1", "4", "5", "6", "9", "10", "11", "12",
+    "1",
+    "4",
+    "5",
+    "6",
+    "9",
+    "10",
+    "11",
+    "12",
     "2ITNs",
     "Cohort",
     "EffectiveDrug",
@@ -58,7 +65,9 @@ OM_BOXTEST_NAMES = [
 
 
 def read_expected_output(path):
-    return pd.read_csv(path, sep="\t", header=None, names=["survey", "column", "measure", "value"])
+    return pd.read_csv(
+        path, sep="\t", header=None, names=["survey", "column", "measure", "value"]
+    )
 
 
 def read_expected_ctsout(path):
@@ -103,7 +112,9 @@ def assert_matches_expected(result, name: str):
         survey[["survey", "column", "measure"]].to_numpy()
         == expected[["survey", "column", "measure"]].to_numpy()
     ).all()
-    assert np.allclose(survey["value"].to_numpy(), expected["value"].to_numpy(), rtol=1e-5, atol=1e-5)
+    assert np.allclose(
+        survey["value"].to_numpy(), expected["value"].to_numpy(), rtol=1e-5, atol=1e-5
+    )
 
     continuous = result["continuous"]
     if continuous is not None and expected_ctsout.exists():
@@ -113,7 +124,9 @@ def assert_matches_expected(result, name: str):
         assert np.allclose(
             continuous.to_numpy(dtype=float),
             expected_cts.to_numpy(dtype=float),
-            rtol=1e-6, atol=1e-6, equal_nan=True,
+            rtol=1e-6,
+            atol=1e-6,
+            equal_nan=True,
         )
 
 
@@ -132,5 +145,7 @@ def assert_results_identical(result1, result2):
         assert list(continuous1.columns) == list(continuous2.columns)
         assert continuous1.shape == continuous2.shape
         assert np.array_equal(
-            continuous1.to_numpy(dtype=float), continuous2.to_numpy(dtype=float), equal_nan=True
+            continuous1.to_numpy(dtype=float),
+            continuous2.to_numpy(dtype=float),
+            equal_nan=True,
         )

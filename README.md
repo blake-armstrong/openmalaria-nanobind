@@ -1,6 +1,6 @@
-# openmalaria (Python bindings)
+# openmalaria-nanobind
 
-Python bindings for [OpenMalaria](https://github.com/SwissTPH/openmalaria),
+Minimal Python bindings for [OpenMalaria](https://github.com/SwissTPH/openmalaria),
 built with [nanobind](https://github.com/wjakob/nanobind). Runs a scenario in a
 fresh subprocess per call and returns pandas DataFrames directly. **Bypasses the
 need to read an XML from the disk, and writing results to the disk.**
@@ -10,6 +10,14 @@ to connect the OpenMalaria C++ code to Python as a library call. This repo does
 not add additional functionality to OpenMalaria. It is just an environment that
 provides a consistent way to run OpenMalaria through Python, handle exceptions,
 and provide small typings for returned information.
+
+Published on PyPI as `openmalaria` and imported as `import openmalaria`.
+Analysis helpers built on top of `run()` (survey reshaping, age groups, rates)
+live separately in
+[openmalaria-python](https://github.com/blake-armstrong/openmalaria-python)
+(`pip install openmalaria-tools`, `import openmalaria_tools`). Everything in
+this repo is intended as a candidate for upstreaming (see
+[Upstreaming](#upstreaming)).
 
 ## Install
 
@@ -47,8 +55,8 @@ patch, re-run `git -C core apply` after resolving and update the patch file
 import openmalaria as om
 
 result = om.run(path="scenario.xml")
-result["survey"]       # pd.DataFrame: survey, column, measure, value
-result["continuous"]   # pd.DataFrame (one row per timestep) or None
+result["survey"]  # pd.DataFrame: survey, column, measure, value
+result["continuous"]  # pd.DataFrame (one row per timestep) or None
 ```
 
 Or pass scenario XML content directly instead of a file path:
@@ -60,7 +68,11 @@ result = om.run(xml=scenario_xml_string, resource_path="/path/to/resources")
 NB: schema lookup resolves relative to the current working directory for both
 `path=` and `xml=` (not relative to the scenario file's own directory, if using
 `path=`). Run from a directory containing `scenario_current.xsd`, or otherwise
-ensure the schema is discoverable from the working directory.
+ensure the schema is discoverable from the working directory. Alternatively,
+pass `schema_dir=<dir containing scenario_current.xsd>`: the worker subprocess
+then runs from that directory instead (relative `path=`/`resource_path=` are
+still resolved against the caller's working directory), so the caller never
+has to `chdir`.
 
 `om.run()` also accepts `validate_only=True` (parse/validate the scenario and
 stop before any timestep evolution. This acts as a cheap sanity check,
@@ -95,7 +107,7 @@ scenario has no `<continuous>` monitoring configured.
 
 Equivalent to the CLI's `openMalaria --version`.
 
-## IMPORTATNT: one subprocess per run()
+## IMPORTANT: one subprocess per run()
 
 OpenMalaria's C++ core keeps several pieces of state as process-global statics
 that `init()` functions populate but never clear. This works for the CLI (always
@@ -116,37 +128,39 @@ invoke repeatedly in one long-lived process. Verified examples:
   would include the first run's columns mixed into its own.
 - `mon::internal::runtime.conditions` -- push_back-only, never cleared.
 
-It would be ideal to fix the underyling issues with OpenMalaria, but I am not an
+It would be ideal to fix the underlying issues with OpenMalaria, but I am not an
 admin there. So instead, a work around is to launch
 `python -m openmalaria._worker` fresh for every call, so there's never a second
 call in the same still-alive process for any of the above to leak across.
 
 It costs a process-spawn + reimport per `run()` call
 
-## Parallelism (mpi4py)
-
-`run()`'s own subprocess isolation makes it safe to call repeatedly in one
-process, but that's still one scenario at a time. For genuine parallelism across
-scenarios (especially across nodes on a cluster), distribute with mpi4py:
-
-```python
-from mpi4py import MPI
-import openmalaria as om
-
-comm = MPI.COMM_WORLD
-scenario_paths = [...]  # one per rank, or distribute a longer list up front
-
-result = om.run(path=scenario_paths[comm.rank])
-```
-
-Pin ranks to individual cores via your launcher, e.g.
-`mpirun --bind-to core -np N python script.py`. Note each rank's `run()` call
-still spawns its own worker subprocess underneath
-
 ## Tests
 
 ```sh
-uv run --extra test pytest
+uv run pytest
+```
+
+`tests/test_rerun_consistency.py` and `test_repeated_calls_in_same_process_succeed`
+guard the one-subprocess-per-run() isolation above: every box-test scenario is
+run twice in the same process and must match `core/test/expected` both times.
+
+## Linting and type checking
+
+```sh
+uv run ruff format --check
+uv run ruff check
+uv run basedpyright
+```
+
+`src/openmalaria/_openmalaria.pyi` is generated from the compiled
+module; regenerate it after changing `bindings/src/bindings.cpp`:
+
+```sh
+uv run --with nanobind python -m nanobind.stubgen -q -P \
+  -p bindings/stubgen_patterns.txt \
+  -m openmalaria._openmalaria \
+  -o src/openmalaria/_openmalaria.pyi
 ```
 
 ## Limitations
@@ -159,3 +173,16 @@ engine has no internal threading (no OpenMP, no `std::thread` anywhere in the
 C++ core), so single-core execution is achieved externally:
 `mpirun --bind-to core -np N python script.py`, or
 `os.sched_setaffinity(0, {core_id})` (Linux) at the start of a worker process.
+
+## Upstreaming
+
+If OpenMalaria adopts Python bindings, this repo maps onto upstream as:
+
+- `patches/0001-add-python-bindings-hook.patch` becomes a real `OM_BUILD_PYTHON`
+  CMake option in upstream's `CMakeLists.txt`.
+- `bindings/` (the nanobind C++ and its CMake) becomes an upstream `python/`
+  directory, and `src/openmalaria/` its Python package.
+- The `core/` submodule and patch step disappear.
+- The subprocess isolation in `run()`/`_worker.py` stays until the
+  process-global statics listed above are cleared between runs in the C++ core;
+  after that, `run()` can call `_run()` directly.

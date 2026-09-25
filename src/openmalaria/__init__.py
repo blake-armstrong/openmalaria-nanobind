@@ -2,20 +2,20 @@ from __future__ import annotations
 
 import os
 import pickle
+import shutil
 import subprocess
 import sys
 import tempfile
-from typing import Optional
+from typing import Any
 
 from . import _openmalaria
 from .errors import OpenMalariaError
-from .types import OMRunResult, ScenarioResult
+from .types import OMRunResult
 
 __all__ = [
     "MEASURE_CODES",
     "OMRunResult",
     "OpenMalariaError",
-    "ScenarioResult",
     "run",
     "version",
 ]
@@ -25,18 +25,28 @@ MEASURE_CODES: dict[str, int] = _openmalaria.MEASURE_CODES
 
 def run(
     *,
-    xml: Optional[str] = None,
-    path: Optional[str] = None,
+    xml: str | None = None,
+    path: str | None = None,
     resource_path: str = "",
     validate_only: bool = False,
     verbose: bool = False,
     progress: bool = False,
-    seed: Optional[int] = None,
-    tmp_dir: Optional[str] = None,
+    seed: int | None = None,
+    schema_dir: str | None = None,
+    tmp_dir: str | None = None,
     keep_tmp: bool = False,
 ) -> OMRunResult:
     if (xml is None) == (path is None):
         raise ValueError("exactly one of xml= or path= must be given")
+
+    if schema_dir is None:
+        worker_cwd = os.getcwd()
+    else:
+        worker_cwd = os.path.abspath(schema_dir)
+        if path is not None:
+            path = os.path.abspath(path)
+        if resource_path:
+            resource_path = os.path.abspath(resource_path)
 
     job = {
         "xml": xml,
@@ -48,13 +58,8 @@ def run(
         "seed": seed,
     }
 
-    if keep_tmp:
-        tmp = tempfile.mkdtemp(prefix="openmalaria-run-", dir=tmp_dir)
-    else:
-        tmp = tempfile.TemporaryDirectory(prefix="openmalaria-run-", dir=tmp_dir)
-
+    tmp_path = tempfile.mkdtemp(prefix="openmalaria-run-", dir=tmp_dir)
     try:
-        tmp_path = tmp if keep_tmp else tmp.name
         in_path = os.path.join(tmp_path, "in.pkl")
         out_path = os.path.join(tmp_path, "out.pkl")
         with open(in_path, "wb") as f:
@@ -64,10 +69,18 @@ def run(
         worker_launch_dir = os.path.dirname(package_dir)
         proc = subprocess.run(
             [
-                sys.executable, "-m", "openmalaria._worker",
-                "--in", in_path, "--out", out_path, "--cwd", os.getcwd(),
+                sys.executable,
+                "-m",
+                "openmalaria._worker",
+                "--in",
+                in_path,
+                "--out",
+                out_path,
+                "--cwd",
+                worker_cwd,
             ],
             cwd=worker_launch_dir,
+            check=False,
         )
 
         if not os.path.exists(out_path):
@@ -83,7 +96,7 @@ def run(
             outcome = pickle.load(f)
     finally:
         if not keep_tmp:
-            tmp.cleanup()
+            shutil.rmtree(tmp_path)
 
     if keep_tmp:
         print(f"openmalaria: kept tmp files at {tmp_path}", file=sys.stderr)
@@ -93,6 +106,6 @@ def run(
     return outcome["result"]
 
 
-def version() -> dict:
-    v = _openmalaria._version()
+def version() -> dict[str, Any]:
+    v = _openmalaria._version()  # pyright: ignore[reportPrivateUsage]
     return {"program_version": v.program_version, "schema_version": v.schema_version}
