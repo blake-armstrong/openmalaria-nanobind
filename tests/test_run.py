@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 from pathlib import Path
 
@@ -63,6 +64,10 @@ def test_version():
     assert set(v.keys()) == {"program_version", "schema_version"}
     assert isinstance(v["program_version"], str) and v["program_version"]
     assert isinstance(v["schema_version"], int) and v["schema_version"] > 0
+
+
+def test_core_commit():
+    assert re.fullmatch(r"[0-9a-f]{40}", om.CORE_COMMIT)
 
 
 def test_missing_scenario_raises(tmp_path):

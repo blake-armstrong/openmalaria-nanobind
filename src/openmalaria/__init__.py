@@ -13,6 +13,7 @@ from .errors import OpenMalariaError
 from .types import OMRunResult
 
 __all__ = [
+    "CORE_COMMIT",
     "MEASURE_CODES",
     "OMRunResult",
     "OpenMalariaError",
@@ -20,6 +21,7 @@ __all__ = [
     "version",
 ]
 
+CORE_COMMIT: str = _openmalaria.CORE_COMMIT
 MEASURE_CODES: dict[str, int] = _openmalaria.MEASURE_CODES
 
 

@@ -1,2 +1,5 @@
 MEASURE_CODES:
     MEASURE_CODES: dict[str, int]
+
+CORE_COMMIT:
+    CORE_COMMIT: str

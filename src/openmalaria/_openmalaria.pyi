@@ -44,5 +44,7 @@ def _version() -> VersionInfo: ...
 
 MEASURE_CODES: dict[str, int]
 
+CORE_COMMIT: str
+
 class OpenMalariaError(Exception):
     pass

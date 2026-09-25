@@ -108,6 +108,15 @@ scenario has no `<continuous>` monitoring configured.
 
 Equivalent to the CLI's `openMalaria --version`.
 
+```python
+>>> om.CORE_COMMIT
+'90582271b6b2aa497991d58fba547314b1c369f1'
+```
+
+The commit of the `core` submodule the extension was built from, captured at
+build time. It is `'unknown'` if git was unavailable; pass
+`-C cmake.define.OM_CORE_COMMIT=<sha>` to set it explicitly.
+
 ## IMPORTANT: one subprocess per run()
 
 OpenMalaria's C++ core keeps several pieces of state as process-global statics

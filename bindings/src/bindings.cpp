@@ -200,6 +200,8 @@ void register_core_bindings(nb::module_ &m) {
   m.def("_version", &version_impl);
 
   m.attr("MEASURE_CODES") = measure_codes_impl();
+
+  m.attr("CORE_COMMIT") = OM_CORE_COMMIT;
 }
 
 void register_error_bindings(nb::module_ &m) {

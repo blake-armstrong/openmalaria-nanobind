@@ -14,6 +14,27 @@ set_target_properties (model schema contrib PROPERTIES POSITION_INDEPENDENT_CODE
 
 nanobind_add_module (_openmalaria src/bindings.cpp)
 
+if (NOT DEFINED OM_CORE_COMMIT)
+  set (OM_CORE_COMMIT "unknown")
+  find_package (Git QUIET)
+  if (GIT_FOUND)
+    execute_process (
+      COMMAND "${GIT_EXECUTABLE}" -c safe.directory=* rev-parse HEAD
+      WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+      OUTPUT_VARIABLE _om_core_commit
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      RESULT_VARIABLE _om_git_result
+      ERROR_QUIET
+    )
+    if (_om_git_result EQUAL 0)
+      set (OM_CORE_COMMIT "${_om_core_commit}")
+    endif ()
+  endif ()
+endif ()
+message (STATUS "OpenMalaria core commit: ${OM_CORE_COMMIT}")
+
+target_compile_definitions (_openmalaria PRIVATE OM_CORE_COMMIT="${OM_CORE_COMMIT}")
+
 target_include_directories (_openmalaria PRIVATE
   ${CMAKE_SOURCE_DIR}/model
   ${CMAKE_BINARY_DIR}
