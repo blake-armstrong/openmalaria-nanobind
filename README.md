@@ -66,14 +66,13 @@ Or pass scenario XML content directly instead of a file path:
 result = om.run(xml=scenario_xml_string, resource_path="/path/to/resources")
 ```
 
-NB: schema lookup resolves relative to the current working directory for both
-`path=` and `xml=` (not relative to the scenario file's own directory, if using
-`path=`). Run from a directory containing `scenario_current.xsd`, or otherwise
-ensure the schema is discoverable from the working directory. Alternatively,
-pass `schema_dir=<dir containing scenario_current.xsd>`: the worker subprocess
-then runs from that directory instead (relative `path=`/`resource_path=` are
-still resolved against the caller's working directory), so the caller never has
-to `chdir`.
+The package ships the `scenario_current.xsd` its engine was compiled against,
+in `om.SCHEMA_DIR`, and the worker subprocess runs from that directory, so a
+scenario whose `xsi:schemaLocation` names `scenario_current.xsd` validates
+against the matching schema without any setup. Pass
+`schema_dir=<dir containing the XSD>` to validate against a different copy.
+Relative `path=`/`resource_path=` are resolved against the caller's working
+directory, and an empty `resource_path=` means the caller's working directory.
 
 `om.run()` also accepts `validate_only=True` (parse/validate the scenario and
 stop before any timestep evolution. This acts as a cheap sanity check,
@@ -107,6 +106,15 @@ scenario has no `<continuous>` monitoring configured.
 ```
 
 Equivalent to the CLI's `openMalaria --version`.
+
+```python
+>>> om.SCHEMA_VERSION
+50
+```
+
+The scenario schema version this engine reads, the same number `om.version()`
+reports and the one in `om.SCHEMA_DIR`'s XSD namespace. Downstream packages
+should read it from here rather than hard-coding it.
 
 ```python
 >>> om.CORE_COMMIT

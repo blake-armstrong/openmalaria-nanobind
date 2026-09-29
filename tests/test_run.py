@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import shutil
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import numpy as np
@@ -70,6 +71,14 @@ def test_core_commit():
     assert re.fullmatch(r"[0-9a-f]{40}", om.CORE_COMMIT)
 
 
+def test_schema_version_matches_engine_and_packaged_xsd():
+    assert om.SCHEMA_VERSION == om.version()["schema_version"]
+    xsd = ET.parse(Path(om.SCHEMA_DIR) / "scenario_current.xsd").getroot()
+    assert xsd.attrib["targetNamespace"] == (
+        f"http://openmalaria.org/schema/scenario_{om.SCHEMA_VERSION}"
+    )
+
+
 def test_missing_scenario_raises(tmp_path):
     with pytest.raises(om.OpenMalariaError):
         om.run(path=str(tmp_path / "does_not_exist.xml"))
@@ -85,8 +94,7 @@ def test_neither_xml_nor_path_raises():
         om.run()
 
 
-def test_validate_only_is_fast_and_empty(scenario1_path, resource_path, monkeypatch):
-    monkeypatch.chdir(scenario1_path.parent)
+def test_validate_only_is_fast_and_empty(scenario1_path, resource_path):
     r = om.run(
         path=str(scenario1_path), resource_path=resource_path, validate_only=True
     )
@@ -94,66 +102,76 @@ def test_validate_only_is_fast_and_empty(scenario1_path, resource_path, monkeypa
     assert r["continuous"] is None
 
 
-def test_xml_matches_path(scenario1_path, resource_path, monkeypatch):
-    monkeypatch.chdir(scenario1_path.parent)
+def test_xml_matches_path(scenario1_path, resource_path):
     xml_content = scenario1_path.read_text()
     r = om.run(xml=xml_content, resource_path=resource_path)
     assert r["survey"].shape[0] > 0
     assert list(r["survey"].columns) == ["survey", "column", "measure", "value"]
 
 
-def test_schema_dir_replaces_chdir(
+def test_packaged_schema_is_used_by_default(
     scenario1_path, resource_path, tmp_path, monkeypatch
 ):
-    elsewhere = tmp_path / "elsewhere"
-    elsewhere.mkdir()
-    monkeypatch.chdir(elsewhere)
+    monkeypatch.chdir(tmp_path)
+    r = om.run(
+        path=str(scenario1_path), resource_path=resource_path, validate_only=True
+    )
+    assert r["survey"].shape == (0, 4)
+    assert os.getcwd() == str(tmp_path)
 
+
+def test_schema_dir_overrides_packaged_schema(scenario1_path, resource_path, tmp_path):
+    empty = tmp_path / "empty"
+    empty.mkdir()
     with pytest.raises(om.OpenMalariaError):
         om.run(
-            path=str(scenario1_path), resource_path=resource_path, validate_only=True
+            path=str(scenario1_path),
+            resource_path=resource_path,
+            schema_dir=str(empty),
+            validate_only=True,
         )
 
+    custom = tmp_path / "custom"
+    custom.mkdir()
+    shutil.copy(Path(om.SCHEMA_DIR) / "scenario_current.xsd", custom)
     r = om.run(
         path=str(scenario1_path),
         resource_path=resource_path,
-        schema_dir=str(scenario1_path.parent),
+        schema_dir=str(custom),
         validate_only=True,
     )
     assert r["survey"].shape == (0, 4)
-    assert os.getcwd() == str(elsewhere)
 
 
-def test_schema_dir_resolves_relative_path_against_caller_cwd(
+def test_relative_paths_resolve_against_caller_cwd(
     scenario1_path, resource_path, monkeypatch
 ):
     monkeypatch.chdir(scenario1_path.parent.parent)
     relative = os.path.join(scenario1_path.parent.name, scenario1_path.name)
 
-    r = om.run(
-        path=relative,
-        resource_path=resource_path,
-        schema_dir=str(scenario1_path.parent),
-        validate_only=True,
-    )
+    r = om.run(path=relative, resource_path=resource_path, validate_only=True)
     assert r["survey"].shape == (0, 4)
 
 
-def test_repeated_calls_in_same_process_succeed(
-    scenario1_path, resource_path, monkeypatch
+def test_empty_resource_path_is_caller_cwd(
+    scenario1_result, resource_path, monkeypatch
 ):
-    monkeypatch.chdir(scenario1_path.parent)
+    monkeypatch.chdir(resource_path)
+    r = om.run(path="scenario1.xml")
+    assert r["survey"].equals(scenario1_result["survey"])
+
+
+def test_repeated_calls_in_same_process_succeed(scenario1_path, resource_path):
     r1 = om.run(path=str(scenario1_path), resource_path=resource_path)
     r2 = om.run(path=str(scenario1_path), resource_path=resource_path)
     assert (r1["survey"]["value"].to_numpy() == r2["survey"]["value"].to_numpy()).all()
 
 
 def test_tmp_dir_is_used_and_cleaned_up_by_default(
-    scenario1_path, resource_path, tmp_path, monkeypatch
+    scenario1_path, resource_path, tmp_path
 ):
     custom_tmp = tmp_path / "custom_tmp"
     custom_tmp.mkdir()
-    monkeypatch.chdir(scenario1_path.parent)
 
     om.run(
         path=str(scenario1_path), resource_path=resource_path, tmp_dir=str(custom_tmp)
@@ -163,11 +181,10 @@ def test_tmp_dir_is_used_and_cleaned_up_by_default(
 
 
 def test_keep_tmp_preserves_pickle_files_under_tmp_dir(
-    scenario1_path, resource_path, tmp_path, monkeypatch
+    scenario1_path, resource_path, tmp_path
 ):
     custom_tmp = tmp_path / "custom_tmp"
     custom_tmp.mkdir()
-    monkeypatch.chdir(scenario1_path.parent)
 
     om.run(
         path=str(scenario1_path),
@@ -184,11 +201,7 @@ def test_keep_tmp_preserves_pickle_files_under_tmp_dir(
     assert (run_dir / "out.pkl").exists()
 
 
-def test_keep_tmp_prints_kept_path_on_stderr(
-    scenario1_path, resource_path, monkeypatch, capsys
-):
-    monkeypatch.chdir(scenario1_path.parent)
-
+def test_keep_tmp_prints_kept_path_on_stderr(scenario1_path, resource_path, capsys):
     om.run(path=str(scenario1_path), resource_path=resource_path, keep_tmp=True)
 
     captured = capsys.readouterr()

@@ -10,14 +10,9 @@ from _regression_helpers import (
 
 
 @pytest.mark.parametrize("name", OM_BOXTEST_NAMES)
-def test_two_runs_in_same_process_match_and_are_consistent(name, tmp_path):
-    run1_dir = tmp_path / "run1"
-    run2_dir = tmp_path / "run2"
-    run1_dir.mkdir()
-    run2_dir.mkdir()
-
-    result1 = run_scenario(name, run1_dir)
-    result2 = run_scenario(name, run2_dir)
+def test_two_runs_in_same_process_match_and_are_consistent(name):
+    result1 = run_scenario(name)
+    result2 = run_scenario(name)
 
     assert_matches_expected(result1, name)
     assert_matches_expected(result2, name)

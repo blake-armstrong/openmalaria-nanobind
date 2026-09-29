@@ -46,5 +46,7 @@ MEASURE_CODES: dict[str, int]
 
 CORE_COMMIT: str
 
+SCHEMA_VERSION: int
+
 class OpenMalariaError(Exception):
     pass

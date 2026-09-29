@@ -51,4 +51,8 @@ target_link_libraries (_openmalaria PRIVATE
   ${PTHREAD_LIBRARIES}
 )
 
+add_dependencies (_openmalaria inlined_xsd)
+
 install (TARGETS _openmalaria LIBRARY DESTINATION openmalaria)
+install (FILES "${CMAKE_BINARY_DIR}/schema/scenario_current.xsd"
+  DESTINATION openmalaria/schema)

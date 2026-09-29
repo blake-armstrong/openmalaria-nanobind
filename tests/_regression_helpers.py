@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import os
-import shutil
-
 import numpy as np
 import pandas as pd
-from conftest import CORE_TEST_DIR, EXPECTED_DIR, SCHEMA_FILE
+from conftest import CORE_TEST_DIR, EXPECTED_DIR
 
 import openmalaria as om
 
@@ -87,18 +84,11 @@ def dedup_columns(names):
     return result
 
 
-def run_scenario(name: str, tmp_path):
-    scenario_src = CORE_TEST_DIR / f"scenario{name}.xml"
-    shutil.copy(SCHEMA_FILE, tmp_path / "scenario_current.xsd")
-    scenario_path = tmp_path / f"scenario{name}.xml"
-    shutil.copy(scenario_src, scenario_path)
-
-    old_cwd = os.getcwd()
-    os.chdir(tmp_path)
-    try:
-        return om.run(path=str(scenario_path), resource_path=str(CORE_TEST_DIR))
-    finally:
-        os.chdir(old_cwd)
+def run_scenario(name: str):
+    return om.run(
+        path=str(CORE_TEST_DIR / f"scenario{name}.xml"),
+        resource_path=str(CORE_TEST_DIR),
+    )
 
 
 def assert_matches_expected(result, name: str):

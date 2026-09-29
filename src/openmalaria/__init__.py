@@ -15,6 +15,8 @@ from .types import OMRunResult
 __all__ = [
     "CORE_COMMIT",
     "MEASURE_CODES",
+    "SCHEMA_DIR",
+    "SCHEMA_VERSION",
     "OMRunResult",
     "OpenMalariaError",
     "run",
@@ -23,6 +25,8 @@ __all__ = [
 
 CORE_COMMIT: str = _openmalaria.CORE_COMMIT
 MEASURE_CODES: dict[str, int] = _openmalaria.MEASURE_CODES
+SCHEMA_VERSION: int = _openmalaria.SCHEMA_VERSION
+SCHEMA_DIR: str = os.path.join(os.path.dirname(_openmalaria.__file__), "schema")
 
 
 def run(
@@ -41,14 +45,10 @@ def run(
     if (xml is None) == (path is None):
         raise ValueError("exactly one of xml= or path= must be given")
 
-    if schema_dir is None:
-        worker_cwd = os.getcwd()
-    else:
-        worker_cwd = os.path.abspath(schema_dir)
-        if path is not None:
-            path = os.path.abspath(path)
-        if resource_path:
-            resource_path = os.path.abspath(resource_path)
+    worker_cwd = os.path.abspath(SCHEMA_DIR if schema_dir is None else schema_dir)
+    if path is not None:
+        path = os.path.abspath(path)
+    resource_path = os.path.abspath(resource_path or os.curdir)
 
     job = {
         "xml": xml,
