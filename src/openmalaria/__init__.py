@@ -15,6 +15,7 @@ from .types import OMRunResult
 __all__ = [
     "CORE_COMMIT",
     "MEASURE_CODES",
+    "RESOURCE_DIR",
     "SCHEMA_DIR",
     "SCHEMA_VERSION",
     "OMRunResult",
@@ -27,13 +28,14 @@ CORE_COMMIT: str = _openmalaria.CORE_COMMIT
 MEASURE_CODES: dict[str, int] = _openmalaria.MEASURE_CODES
 SCHEMA_VERSION: int = _openmalaria.SCHEMA_VERSION
 SCHEMA_DIR: str = os.path.join(os.path.dirname(_openmalaria.__file__), "schema")
+RESOURCE_DIR: str = os.path.join(os.path.dirname(_openmalaria.__file__), "resources")
 
 
 def run(
     *,
     xml: str | None = None,
     path: str | None = None,
-    resource_path: str = "",
+    resource_path: str | None = None,
     validate_only: bool = False,
     verbose: bool = False,
     progress: bool = False,
@@ -48,6 +50,8 @@ def run(
     worker_cwd = os.path.abspath(SCHEMA_DIR if schema_dir is None else schema_dir)
     if path is not None:
         path = os.path.abspath(path)
+    if resource_path is None:
+        resource_path = RESOURCE_DIR
     resource_path = os.path.abspath(resource_path or os.curdir)
 
     job = {

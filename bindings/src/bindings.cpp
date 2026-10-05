@@ -37,6 +37,7 @@
 #include "util/errors.h"
 #include "util/version.h"
 
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -159,7 +160,9 @@ RawRunResult run_impl(std::optional<std::string> xml,
   } catch (const OM::util::base_exception &e) {
     throw OpenMalariaError(e.message(), e.getCode());
   } catch (const xsd::cxx::tree::exception<char> &e) {
-    throw OpenMalariaError(std::string("XSD error: ") + e.what(), -1);
+    std::ostringstream message;
+    message << "XSD error: " << e.what() << '\n' << e;
+    throw OpenMalariaError(message.str(), -1);
   }
 }
 

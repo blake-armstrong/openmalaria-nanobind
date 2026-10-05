@@ -56,3 +56,7 @@ add_dependencies (_openmalaria inlined_xsd)
 install (TARGETS _openmalaria LIBRARY DESTINATION openmalaria)
 install (FILES "${CMAKE_BINARY_DIR}/schema/scenario_current.xsd"
   DESTINATION openmalaria/schema)
+install (FILES
+  "${CMAKE_SOURCE_DIR}/test/densities.csv"
+  "${CMAKE_SOURCE_DIR}/test/autoRegressionParameters.csv"
+  DESTINATION openmalaria/resources)

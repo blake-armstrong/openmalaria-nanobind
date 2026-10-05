@@ -71,8 +71,12 @@ in `om.SCHEMA_DIR`, and the worker subprocess runs from that directory, so a
 scenario whose `xsi:schemaLocation` names `scenario_current.xsd` validates
 against the matching schema without any setup. Pass
 `schema_dir=<dir containing the XSD>` to validate against a different copy.
+The package also ships the resource files the core reads at run time
+(`densities.csv`, `autoRegressionParameters.csv`) in `om.RESOURCE_DIR`, and
+`run()` uses that directory when `resource_path=` is not given. Pass
+`resource_path=<dir>` to use your own copies.
 Relative `path=`/`resource_path=` are resolved against the caller's working
-directory, and an empty `resource_path=` means the caller's working directory.
+directory, and an empty `resource_path=""` means the caller's working directory.
 
 `om.run()` also accepts `validate_only=True` (parse/validate the scenario and
 stop before any timestep evolution. This acts as a cheap sanity check,

@@ -84,6 +84,12 @@ def test_missing_scenario_raises(tmp_path):
         om.run(path=str(tmp_path / "does_not_exist.xml"))
 
 
+def test_xsd_error_message_includes_diagnostics(scenario1_path, resource_path):
+    xml = re.sub(r'popSize="\d+"', 'popSize="abc"', scenario1_path.read_text())
+    with pytest.raises(om.OpenMalariaError, match="abc"):
+        om.run(xml=xml, resource_path=resource_path, validate_only=True)
+
+
 def test_xml_and_path_both_given_raises():
     with pytest.raises(ValueError):
         om.run(xml="<x/>", path="dummy.xml")
@@ -157,7 +163,24 @@ def test_empty_resource_path_is_caller_cwd(
     scenario1_result, resource_path, monkeypatch
 ):
     monkeypatch.chdir(resource_path)
-    r = om.run(path="scenario1.xml")
+    r = om.run(path="scenario1.xml", resource_path="")
+    assert r["survey"].equals(scenario1_result["survey"])
+
+
+def test_packaged_resources_present():
+    assert sorted(os.listdir(om.RESOURCE_DIR)) == [
+        "autoRegressionParameters.csv",
+        "densities.csv",
+    ]
+
+
+def test_default_resource_path_is_packaged(
+    scenario1_path, scenario1_result, tmp_path, monkeypatch
+):
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    r = om.run(path=str(scenario1_path))
     assert r["survey"].equals(scenario1_result["survey"])
 
 
